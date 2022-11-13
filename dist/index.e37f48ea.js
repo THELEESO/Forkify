@@ -2438,7 +2438,7 @@ class RecipeView {
         const markup = `
       <div class="spinner">
         <svg>
-          <use href=${(0, _iconsSvgDefault.default)}#icon-loader"></use>
+          <use href="${(0, _iconsSvgDefault.default)}#icon-loader"></use>
         </svg>
       </div>`;
         this.#parentEl.innerHTML = "";
