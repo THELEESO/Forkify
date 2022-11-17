@@ -533,12 +533,23 @@ function hmrAcceptRun(bundle, id) {
 
 },{}],"aenu9":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
-var _esRegexpFlagsJs = require("core-js/modules/es.regexp.flags.js"); // recipeView.addHandlerRender(controlRecipe);
+var _esRegexpFlagsJs = require("core-js/modules/es.regexp.flags.js");
 var _webImmediateJs = require("core-js/modules/web.immediate.js");
+var _regeneratorRuntime = require("regenerator-runtime");
 var _runtime = require("regenerator-runtime/runtime");
 var _modelJs = require("./model.js");
 var _recipeviewJs = require("./views/recipeview.js");
 var _recipeviewJsDefault = parcelHelpers.interopDefault(_recipeviewJs);
+var _searchviewJs = require("./views/searchview.js");
+var _searchviewJsDefault = parcelHelpers.interopDefault(_searchviewJs);
+var _resultviewJs = require("./views/resultview.js");
+var _resultviewJsDefault = parcelHelpers.interopDefault(_resultviewJs);
+var _paginationviewJs = require("./views/paginationview.js");
+var _paginationviewJsDefault = parcelHelpers.interopDefault(_paginationviewJs);
+// from Parcel: while change code and save, the page wont refresh.
+// if (module.hot) {
+//   module.hot.accept();
+// }
 // call API (https://forkify-api.herokuapp.com/v2)
 const controlRecipe = async function() {
     try {
@@ -554,12 +565,37 @@ const controlRecipe = async function() {
         (0, _recipeviewJsDefault.default).renderError();
     }
 };
+const controlSearchResult = async function() {
+    try {
+        (0, _resultviewJsDefault.default).renderSpinner();
+        // get query
+        const query = (0, _searchviewJsDefault.default).getQuery();
+        if (!query) return;
+        // get result
+        await _modelJs.loadSearchResult(query);
+        // render result
+        // resultView.render(model.state.search.result);
+        (0, _resultviewJsDefault.default).render(_modelJs.getSearchResultPage());
+        // render pagination
+        (0, _paginationviewJsDefault.default).render(_modelJs.state.search);
+    } catch (err) {
+        (0, _recipeviewJsDefault.default).renderError();
+    }
+};
+const controlPagination = function(goto) {
+    // render goto result
+    (0, _resultviewJsDefault.default).render(_modelJs.getSearchResultPage(goto));
+    // render goto pagination
+    (0, _paginationviewJsDefault.default).render(_modelJs.state.search);
+};
 const init = function() {
     (0, _recipeviewJsDefault.default).addHandlerRender(controlRecipe);
+    (0, _searchviewJsDefault.default).addHandlerSearch(controlSearchResult);
+    (0, _paginationviewJsDefault.default).addHandlerClick(controlPagination);
 };
 init();
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","core-js/modules/es.regexp.flags.js":"gSXXb","core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","./views/recipeview.js":"8Jlc1"}],"gkKU3":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","core-js/modules/es.regexp.flags.js":"gSXXb","core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","./views/recipeview.js":"8Jlc1","regenerator-runtime":"dXNgZ","./views/searchview.js":"furg1","./views/resultview.js":"cSdas","./views/paginationview.js":"ixwX5"}],"gkKU3":[function(require,module,exports) {
 exports.interopDefault = function(a) {
     return a && a.__esModule ? a : {
         default: a
@@ -2382,10 +2418,19 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "state", ()=>state);
 parcelHelpers.export(exports, "loadRecipe", ()=>loadRecipe);
+parcelHelpers.export(exports, "loadSearchResult", ()=>loadSearchResult);
+parcelHelpers.export(exports, "getSearchResultPage", ()=>getSearchResultPage);
+var _regeneratorRuntime = require("regenerator-runtime");
 var _config = require("./config");
 var _helper = require("./helper");
 const state = {
-    recipe: {}
+    recipe: {},
+    search: {
+        query: "",
+        result: [],
+        page: 1,
+        prePage: (0, _config.SEC_PRE_PAGE)
+    }
 };
 const loadRecipe = async function(id) {
     try {
@@ -2407,16 +2452,42 @@ const loadRecipe = async function(id) {
         throw err;
     }
 };
+const loadSearchResult = async function(query) {
+    try {
+        state.search.query = query;
+        const data = await (0, _helper.getJSON)(`${(0, _config.API_URL)}?search=${query}`);
+        state.search.result = data.data.recipes.map((reci)=>{
+            return {
+                id: reci.id,
+                title: reci.title,
+                image: reci.image_url,
+                publisher: reci.publisher
+            };
+        });
+    } catch (err) {
+        throw err;
+    }
+};
+const getSearchResultPage = function(page = 1) {
+    // page 1 , start 0 to 9(include)
+    state.search.page = page;
+    console.log(state);
+    const start = (page - 1) * state.search.prePage;
+    const end = page * state.search.prePage;
+    return state.search.result.slice(start, end);
+};
 
-},{"./config":"k5Hzs","./helper":"lVRAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"k5Hzs":[function(require,module,exports) {
+},{"./config":"k5Hzs","./helper":"lVRAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","regenerator-runtime":"dXNgZ"}],"k5Hzs":[function(require,module,exports) {
 // IMPORTANT const variables would be REUSED multiple place
 // use UPPERCASE for naming
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 parcelHelpers.export(exports, "API_URL", ()=>API_URL);
 parcelHelpers.export(exports, "TIMEOUT_SEC", ()=>TIMEOUT_SEC);
+parcelHelpers.export(exports, "SEC_PRE_PAGE", ()=>SEC_PRE_PAGE);
 const API_URL = "https://forkify-api.herokuapp.com/api/v2/recipes";
 const TIMEOUT_SEC = 10;
+const SEC_PRE_PAGE = 10;
 
 },{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"lVRAz":[function(require,module,exports) {
 // IMPORTANT Function would be REUSED multiple place
@@ -2447,76 +2518,32 @@ const getJSON = async function(url) {
 };
 
 },{"./config":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"8Jlc1":[function(require,module,exports) {
-// import icon let parcel to connect it.
+// father class
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+// import icon let parcel to connect it.
 var _iconsSvg = require("../../img/icons.svg");
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
 // present float number to (number / number)
 var _fractional = require("fractional");
-class RecipeView {
-    #parentEl = document.querySelector(".recipe");
-    #data;
-    #errorMessage = "Sorry, CANNOT find the recipe!! Try again!!";
-    #message = "";
-    render(data) {
-        this.#data = data;
-        const markup = this.#generateMarkup();
-        this.#clear();
-        this.#parentEl.insertAdjacentHTML("afterbegin", markup);
-    }
-    // (public) for controller call
-    renderSpinner() {
-        const markup = `
-      <div class="spinner">
-        <svg>
-          <use href="${(0, _iconsSvgDefault.default)}#icon-loader"></use>
-        </svg>
-      </div>`;
-        this.#clear();
-        this.#parentEl.insertAdjacentHTML("afterbegin", markup);
-    }
-    renderError(message = this.#errorMessage) {
-        const markup = `
-    <div class="error">
-      <div>
-        <svg>
-          <use href="${(0, _iconsSvgDefault.default)}#icon-alert-triangle"></use>
-        </svg>
-      </div>
-      <p>${message}</p>
-    </div>`;
-        this.#clear();
-        this.#parentEl.insertAdjacentHTML("afterbegin", markup);
-    }
-    renderMessage(message = this.#message) {
-        const markup = `
-    <div class="message">
-      <div>
-        <svg>
-          <use href="${(0, _iconsSvgDefault.default)}#icon-smile"></use>
-        </svg>
-      </div>
-      <p>${message}</p>
-    </div>`;
-        this.#clear();
-        this.#parentEl.insertAdjacentHTML("afterbegin", markup);
-    }
+class RecipeView extends (0, _viewDefault.default) {
+    _parentEl = document.querySelector(".recipe");
+    _errorMessage = "Sorry, CANNOT find the recipe!! Try again!!";
+    _message = "";
     addHandlerRender(handler) {
         [
             "hashchange",
             "load"
         ].forEach((evn)=>window.addEventListener(evn, handler));
     }
-    #clear() {
-        this.#parentEl.innerHTML = "";
-    }
-    #generateMarkup() {
+    _generateMarkup() {
         return `
     <figure class="recipe__fig">
-      <img src="${this.#data.image}" alt="${this.#data.title}" class="recipe__img" />
+      <img src="${this._data.image}" alt="${this._data.title}" class="recipe__img" />
       <h1 class="recipe__title">
-        <span>${this.#data.title}</span>
+        <span>${this._data.title}</span>
       </h1>
     </figure>
 
@@ -2525,14 +2552,14 @@ class RecipeView {
         <svg class="recipe__info-icon">
           <use href="${0, _iconsSvgDefault.default}#icon-clock"></use>
         </svg>
-        <span class="recipe__info-data recipe__info-data--minutes">${this.#data.cookingTime}</span>
+        <span class="recipe__info-data recipe__info-data--minutes">${this._data.cookingTime}</span>
         <span class="recipe__info-text">minutes</span>
       </div>
       <div class="recipe__info">
         <svg class="recipe__info-icon">
           <use href="${0, _iconsSvgDefault.default}#icon-users"></use>
         </svg>
-        <span class="recipe__info-data recipe__info-data--people">${this.#data.servings}</span>
+        <span class="recipe__info-data recipe__info-data--people">${this._data.servings}</span>
         <span class="recipe__info-text">servings</span>
 
         <div class="recipe__info-buttons">
@@ -2551,7 +2578,7 @@ class RecipeView {
 
       <div class="recipe__user-generated">
         <svg>
-          <use href="${0, _iconsSvgDefault.default}#icon-user"></use>
+        
         </svg>
       </div>
       <button class="btn--round">
@@ -2564,7 +2591,7 @@ class RecipeView {
     <div class="recipe__ingredients">
       <h2 class="heading--2">Recipe ingredients</h2>
       <ul class="recipe__ingredient-list">
-      ${this.#data.ingredients.map(this.#generateMarkupIngredient).join("")}
+      ${this._data.ingredients.map(this._generateMarkupIngredient).join("")}
       </ul>
     </div>
 
@@ -2572,12 +2599,12 @@ class RecipeView {
       <h2 class="heading--2">How to cook it</h2>
       <p class="recipe__directions-text">
         This recipe was carefully designed and tested by
-        <span class="recipe__publisher">${this.#data.publisher}</span>. Please check out
+        <span class="recipe__publisher">${this._data.publisher}</span>. Please check out
         directions at their website.
       </p>
       <a
         class="btn--small recipe__btn"
-        href="${this.#data.sourceUrl}"
+        href="${this._data.sourceUrl}"
         target="_blank"
       >
         <span>Directions</span>
@@ -2587,7 +2614,7 @@ class RecipeView {
       </a>
     </div>`;
     }
-    #generateMarkupIngredient(ing) {
+    _generateMarkupIngredient(ing) {
         return ` 
   <li class="recipe__ingredient">
     <svg class="recipe__icon">
@@ -2605,7 +2632,7 @@ class RecipeView {
 // create obj and controller to use it
 exports.default = new RecipeView();
 
-},{"../../img/icons.svg":"cMpiy","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cMpiy":[function(require,module,exports) {
+},{"../../img/icons.svg":"cMpiy","fractional":"3SU56","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./view":"bWlJ9"}],"cMpiy":[function(require,module,exports) {
 module.exports = require("./helpers/bundle-url").getBundleURL("hWUTQ") + "icons.21bad73c.svg" + "?" + Date.now();
 
 },{"./helpers/bundle-url":"lgJ39"}],"lgJ39":[function(require,module,exports) {
@@ -2895,6 +2922,179 @@ Fraction.primeFactors = function(n) {
 };
 module.exports.Fraction = Fraction;
 
-},{}]},["fA0o9","aenu9"], "aenu9", "parcelRequire3a11")
+},{}],"bWlJ9":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _iconsSvg = require("../../img/icons.svg");
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class View {
+    _data;
+    render(data) {
+        // here data only check input arugement is true or false, can check the data is [] or not.
+        // data = undefined, null or data is array but empty
+        console.log(data);
+        if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
+        this._data = data;
+        const markup = this._generateMarkup();
+        this._clear();
+        this._parentEl.insertAdjacentHTML("afterbegin", markup);
+    }
+    _clear() {
+        this._parentEl.innerHTML = "";
+    }
+    // (public) for controller call
+    renderSpinner() {
+        const markup = `
+        <div class="spinner">
+          <svg>
+            <use href="${(0, _iconsSvgDefault.default)}#icon-loader"></use>
+          </svg>
+        </div>`;
+        this._clear();
+        this._parentEl.insertAdjacentHTML("afterbegin", markup);
+    }
+    renderError(message = this._errorMessage) {
+        const markup = `
+      <div class="error">
+        <div>
+          <svg>
+            <use href="${(0, _iconsSvgDefault.default)}#icon-alert-triangle"></use>
+          </svg>
+        </div>
+        <p>${message}</p>
+      </div>`;
+        this._clear();
+        this._parentEl.insertAdjacentHTML("afterbegin", markup);
+    }
+    renderMessage(message = this._message) {
+        const markup = `
+      <div class="message">
+        <div>
+          <svg>
+            <use href="${(0, _iconsSvgDefault.default)}#icon-smile"></use>
+          </svg>
+        </div>
+        <p>${message}</p>
+      </div>`;
+        this._clear();
+        this._parentEl.insertAdjacentHTML("afterbegin", markup);
+    }
+}
+exports.default = View;
+
+},{"../../img/icons.svg":"cMpiy","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"furg1":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+class SearchView {
+    _parentEl = document.querySelector(".search");
+    getQuery() {
+        const query = this._parentEl.querySelector(".search__field").value;
+        this._clearQuery();
+        return query;
+    }
+    _clearQuery() {
+        return this._parentEl.querySelector(".search__field").value = "";
+    }
+    addHandlerSearch(handler) {
+        // use button or enter will trigger
+        // if only use button only button will trigger!
+        this._parentEl.addEventListener("submit", (e)=>{
+            e.preventDefault();
+            handler();
+        });
+    }
+}
+exports.default = new SearchView();
+
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"cSdas":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+var _iconsSvg = require("../../img/icons.svg");
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class ResultView extends (0, _viewDefault.default) {
+    _parentEl = document.querySelector(".results");
+    _errorMessage = `0 results found. try again.`;
+    _message = "";
+    _generateMarkup() {
+        // console.log(this._data);
+        return this._data.map(this._generateMarkupPreview).join("");
+    }
+    _generateMarkupPreview(data) {
+        return `
+  <li class="preview">
+      <a class="preview__link" href="#${data.id}">
+          <figure class="preview__fig">
+              <img src="${data.image}" alt="${data.title}" />
+          </figure>
+          <div class="preview__data">
+              <h4 class="preview__title">${data.title}</h4>
+              <p class="preview__publisher">${data.publisher}</p>
+          </div>
+      </a>
+  </li>`;
+    }
+}
+exports.default = new ResultView();
+
+},{"./view":"bWlJ9","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../../img/icons.svg":"cMpiy"}],"ixwX5":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+var _iconsSvg = require("../../img/icons.svg");
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+var _configJs = require("../config.js");
+class PaginationView extends (0, _viewDefault.default) {
+    _parentEl = document.querySelector(".pagination");
+    addHandlerClick(handler) {
+        this._parentEl.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--inline");
+            // use dataset to get the value
+            const goTo = +btn.dataset.goto;
+            handler(goTo);
+        });
+    }
+    _generateMarkup() {
+        const currentPage = this._data.page;
+        const allPages = Math.ceil(this._data.result.length / (0, _configJs.SEC_PRE_PAGE));
+        // if page 1 and have others pages
+        if (currentPage === 1 && allPages > 1) return `
+    <button data-goto="${currentPage + 1}" class="btn--inline pagination__btn--next">
+        <span>Page ${currentPage + 1}</span>
+        <svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-right"></use>
+        </svg>
+    </button>`;
+        // if last page
+        if (currentPage === allPages && allPages > 1) return `
+    <button data-goto="${currentPage - 1}" class="btn--inline pagination__btn--prev">
+        <svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-left"></use>
+        </svg>
+        <span>Page ${currentPage - 1}</span>
+    </button>`;
+        // if the page is not first and last
+        if (currentPage < allPages) return `
+    <button data-goto="${currentPage - 1}" class="btn--inline pagination__btn--prev">
+        <svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-left"></use>
+        </svg>
+        <span>Page ${currentPage - 1}</span>
+    </button>
+    <button data-goto="${currentPage + 1}" class="btn--inline pagination__btn--next">
+        <span>Page ${currentPage + 1}</span>
+        <svg class="search__icon">
+            <use href="${0, _iconsSvgDefault.default}#icon-arrow-right"></use>
+        </svg>
+    </button>`;
+        // if only page 1 or no result
+        return "";
+    }
+}
+exports.default = new PaginationView();
+
+},{"./view":"bWlJ9","../../img/icons.svg":"cMpiy","../config.js":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["fA0o9","aenu9"], "aenu9", "parcelRequire3a11")
 
 //# sourceMappingURL=index.e37f48ea.js.map

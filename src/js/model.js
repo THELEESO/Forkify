@@ -1,8 +1,10 @@
-import { API_URL } from './config';
+import { async } from 'regenerator-runtime';
+import { API_URL, SEC_PRE_PAGE } from './config';
 import { getJSON } from './helper';
 
 export const state = {
   recipe: {},
+  search: { query: '', result: [], page: 1, prePage: SEC_PRE_PAGE },
 };
 
 export const loadRecipe = async function (id) {
@@ -27,4 +29,31 @@ export const loadRecipe = async function (id) {
   } catch (err) {
     throw err;
   }
+};
+
+export const loadSearchResult = async function (query) {
+  try {
+    state.search.query = query;
+    const data = await getJSON(`${API_URL}?search=${query}`);
+
+    state.search.result = data.data.recipes.map(reci => {
+      return {
+        id: reci.id,
+        title: reci.title,
+        image: reci.image_url,
+        publisher: reci.publisher,
+      };
+    });
+  } catch (err) {
+    throw err;
+  }
+};
+
+export const getSearchResultPage = function (page = 1) {
+  // page 1 , start 0 to 9(include)
+  state.search.page = page;
+  console.log(state);
+  const start = (page - 1) * state.search.prePage;
+  const end = page * state.search.prePage;
+  return state.search.result.slice(start, end);
 };
