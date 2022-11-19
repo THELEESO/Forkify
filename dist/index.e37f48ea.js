@@ -553,10 +553,10 @@ var _paginationviewJsDefault = parcelHelpers.interopDefault(_paginationviewJs);
 // call API (https://forkify-api.herokuapp.com/v2)
 const controlRecipe = async function() {
     try {
-        (0, _recipeviewJsDefault.default).renderSpinner();
         const id = window.location.hash.slice(1);
         if (!id) return;
-        console.log(id);
+        // update search result
+        (0, _resultviewJsDefault.default).update(_modelJs.getSearchResultPage());
         // get recipes data
         await _modelJs.loadRecipe(id);
         // rendering web
@@ -574,7 +574,6 @@ const controlSearchResult = async function() {
         // get result
         await _modelJs.loadSearchResult(query);
         // render result
-        // resultView.render(model.state.search.result);
         (0, _resultviewJsDefault.default).render(_modelJs.getSearchResultPage());
         // render pagination
         (0, _paginationviewJsDefault.default).render(_modelJs.state.search);
@@ -588,8 +587,15 @@ const controlPagination = function(goto) {
     // render goto pagination
     (0, _paginationviewJsDefault.default).render(_modelJs.state.search);
 };
+const controlServings = function(newServings) {
+    // update servings
+    _modelJs.updateServings(newServings);
+    // update recipe with virtual DOM
+    (0, _recipeviewJsDefault.default).update(_modelJs.state.recipe);
+};
 const init = function() {
     (0, _recipeviewJsDefault.default).addHandlerRender(controlRecipe);
+    (0, _recipeviewJsDefault.default).addHandlerUpdateServings(controlServings);
     (0, _searchviewJsDefault.default).addHandlerSearch(controlSearchResult);
     (0, _paginationviewJsDefault.default).addHandlerClick(controlPagination);
 };
@@ -2420,6 +2426,7 @@ parcelHelpers.export(exports, "state", ()=>state);
 parcelHelpers.export(exports, "loadRecipe", ()=>loadRecipe);
 parcelHelpers.export(exports, "loadSearchResult", ()=>loadSearchResult);
 parcelHelpers.export(exports, "getSearchResultPage", ()=>getSearchResultPage);
+parcelHelpers.export(exports, "updateServings", ()=>updateServings);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _config = require("./config");
 var _helper = require("./helper");
@@ -2454,6 +2461,8 @@ const loadRecipe = async function(id) {
 };
 const loadSearchResult = async function(query) {
     try {
+        // reset page
+        state.search.page = 1;
         state.search.query = query;
         const data = await (0, _helper.getJSON)(`${(0, _config.API_URL)}?search=${query}`);
         state.search.result = data.data.recipes.map((reci)=>{
@@ -2468,13 +2477,18 @@ const loadSearchResult = async function(query) {
         throw err;
     }
 };
-const getSearchResultPage = function(page = 1) {
+const getSearchResultPage = function(page = state.search.page) {
     // page 1 , start 0 to 9(include)
     state.search.page = page;
-    console.log(state);
     const start = (page - 1) * state.search.prePage;
     const end = page * state.search.prePage;
     return state.search.result.slice(start, end);
+};
+const updateServings = function(newServings) {
+    state.recipe.ingredients.forEach((ing)=>{
+        ing.quantity = ing.quantity * (newServings / state.recipe.servings);
+    });
+    state.recipe.servings = newServings;
 };
 
 },{"./config":"k5Hzs","./helper":"lVRAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","regenerator-runtime":"dXNgZ"}],"k5Hzs":[function(require,module,exports) {
@@ -2538,6 +2552,14 @@ class RecipeView extends (0, _viewDefault.default) {
             "load"
         ].forEach((evn)=>window.addEventListener(evn, handler));
     }
+    addHandlerUpdateServings(handler) {
+        this._parentEl.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--update--servings");
+            if (!btn) return;
+            const { updateTo  } = btn.dataset;
+            if (+updateTo > 0) handler(+updateTo);
+        });
+    }
     _generateMarkup() {
         return `
     <figure class="recipe__fig">
@@ -2563,12 +2585,12 @@ class RecipeView extends (0, _viewDefault.default) {
         <span class="recipe__info-text">servings</span>
 
         <div class="recipe__info-buttons">
-          <button class="btn--tiny btn--increase-servings">
+          <button class="btn--tiny btn--update--servings" data-update-to="${this._data.servings - 1}">
             <svg>
               <use href="${0, _iconsSvgDefault.default}#icon-minus-circle"></use>
             </svg>
           </button>
-          <button class="btn--tiny btn--increase-servings">
+          <button class="btn--tiny btn--update--servings" data-update-to="${this._data.servings + 1}">
             <svg>
               <use href="${0, _iconsSvgDefault.default}#icon-plus-circle"></use>
             </svg>
@@ -2939,6 +2961,26 @@ class View {
         this._clear();
         this._parentEl.insertAdjacentHTML("afterbegin", markup);
     }
+    // update any dom if it's changed
+    update(data) {
+        this._data = data;
+        const newMarkup = this._generateMarkup();
+        // create virtual DOM (save in memory)
+        // createRange() select a range to create/insert the html
+        const newDOM = document.createRange().createContextualFragment(newMarkup);
+        // compare Virtual DOM and Real DOM
+        const newEl = newDOM.querySelectorAll("*");
+        const currentEl = this._parentEl.querySelectorAll("*");
+        newEl.forEach((newEl, i)=>{
+            const curEl = currentEl[i];
+            // replace the text
+            if (!newEl.isEqualNode(curEl) && newEl.firstChild.nodeValue.trim() !== "") curEl.innerText = newEl.innerText;
+            // replace attributes
+            if (!newEl.isEqualNode(curEl)) // console.log(Array.from(newEl.attributes));
+            // Array.from(newEl.attributes).forEach(attr => console.log(attr.name));
+            Array.from(newEl.attributes).forEach((attr)=>curEl.setAttribute(attr.name, attr.value));
+        });
+    }
     _clear() {
         this._parentEl.innerHTML = "";
     }
@@ -3022,18 +3064,19 @@ class ResultView extends (0, _viewDefault.default) {
         return this._data.map(this._generateMarkupPreview).join("");
     }
     _generateMarkupPreview(data) {
+        const id = window.location.hash.slice(1);
         return `
-  <li class="preview">
-      <a class="preview__link" href="#${data.id}">
-          <figure class="preview__fig">
-              <img src="${data.image}" alt="${data.title}" />
-          </figure>
-          <div class="preview__data">
-              <h4 class="preview__title">${data.title}</h4>
-              <p class="preview__publisher">${data.publisher}</p>
-          </div>
-      </a>
-  </li>`;
+    <li class="preview">
+        <a class="preview__link ${id === data.id ? "preview__link--active" : ""}"  href="#${data.id}">
+            <figure class="preview__fig">
+                <img src="${data.image}" alt="${data.title}" />
+            </figure>
+            <div class="preview__data">
+                <h4 class="preview__title">${data.title}</h4>
+                <p class="preview__publisher">${data.publisher}</p>
+            </div>
+        </a>
+    </li>`;
     }
 }
 exports.default = new ResultView();
@@ -3053,6 +3096,7 @@ class PaginationView extends (0, _viewDefault.default) {
             const btn = e.target.closest(".btn--inline");
             // use dataset to get the value
             const goTo = +btn.dataset.goto;
+            // throw it back to controlPagination()
             handler(goTo);
         });
     }

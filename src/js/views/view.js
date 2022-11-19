@@ -16,6 +16,41 @@ export default class View {
     this._parentEl.insertAdjacentHTML('afterbegin', markup);
   }
 
+  // update any dom if it's changed
+  update(data) {
+    this._data = data;
+    const newMarkup = this._generateMarkup();
+
+    // create virtual DOM (save in memory)
+    // createRange() select a range to create/insert the html
+    const newDOM = document.createRange().createContextualFragment(newMarkup);
+
+    // compare Virtual DOM and Real DOM
+    const newEl = newDOM.querySelectorAll('*');
+    const currentEl = this._parentEl.querySelectorAll('*');
+
+    newEl.forEach((newEl, i) => {
+      const curEl = currentEl[i];
+
+      // replace the text
+      if (
+        !newEl.isEqualNode(curEl) &&
+        newEl.firstChild.nodeValue.trim() !== ''
+      ) {
+        curEl.innerText = newEl.innerText;
+      }
+
+      // replace attributes
+      if (!newEl.isEqualNode(curEl)) {
+        // console.log(Array.from(newEl.attributes));
+        // Array.from(newEl.attributes).forEach(attr => console.log(attr.name));
+        Array.from(newEl.attributes).forEach(attr =>
+          curEl.setAttribute(attr.name, attr.value)
+        );
+      }
+    });
+  }
+
   _clear() {
     this._parentEl.innerHTML = '';
   }

@@ -10,6 +10,7 @@ class PaginationView extends View {
       const btn = e.target.closest('.btn--inline');
       // use dataset to get the value
       const goTo = +btn.dataset.goto;
+      // throw it back to controlPagination()
       handler(goTo);
     });
   }
