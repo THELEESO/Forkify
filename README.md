@@ -2,4 +2,4 @@
 
 ### Recipes search website
 
-#### Pratice: JavaScript, MVC
+#### Pratice: JavaScript, Virtual DOM, MVC

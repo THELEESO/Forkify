@@ -5,13 +5,12 @@ import { getJSON } from './helper';
 export const state = {
   recipe: {},
   search: { query: '', result: [], page: 1, prePage: SEC_PRE_PAGE },
+  bookmark: [],
 };
 
 export const loadRecipe = async function (id) {
   try {
     const data = await getJSON(`${API_URL}/${id}`);
-    console.log(data);
-
     let { recipe } = data.data;
 
     state.recipe = {
@@ -25,7 +24,12 @@ export const loadRecipe = async function (id) {
       sourceUrl: recipe.source_url,
     };
 
-    console.log(recipe);
+    // reload bookmark
+    if (state.bookmark.some(bm => bm.id === id)) {
+      state.recipe.bookmarked = true;
+    } else {
+      state.recipe.bookmarked = false;
+    }
   } catch (err) {
     throw err;
   }
@@ -66,3 +70,32 @@ export const updateServings = function (newServings) {
   });
   state.recipe.servings = newServings;
 };
+
+const storageBookmark = function () {
+  localStorage.setItem('bookmark', JSON.stringify(state.bookmark));
+};
+
+const clearBookmark = function () {
+  localStorage.clear('bookmark');
+};
+
+export const addBookmark = function (recipe) {
+  state.bookmark.push(recipe);
+  state.recipe.bookmarked = true;
+  storageBookmark();
+};
+
+export const deleteBookmark = function (id) {
+  const index = state.bookmark.findIndex(el => el.id === id);
+  state.bookmark.splice(index, 1);
+  state.recipe.bookmarked = false;
+
+  storageBookmark();
+};
+
+const init = function () {
+  const storage = localStorage.getItem('bookmark');
+  if (storage) state.bookmark = JSON.parse(storage);
+};
+
+init();

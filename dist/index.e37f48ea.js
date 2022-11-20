@@ -546,6 +546,8 @@ var _resultviewJs = require("./views/resultview.js");
 var _resultviewJsDefault = parcelHelpers.interopDefault(_resultviewJs);
 var _paginationviewJs = require("./views/paginationview.js");
 var _paginationviewJsDefault = parcelHelpers.interopDefault(_paginationviewJs);
+var _bookmarkviewJs = require("./views/bookmarkview.js");
+var _bookmarkviewJsDefault = parcelHelpers.interopDefault(_bookmarkviewJs);
 // from Parcel: while change code and save, the page wont refresh.
 // if (module.hot) {
 //   module.hot.accept();
@@ -555,8 +557,9 @@ const controlRecipe = async function() {
     try {
         const id = window.location.hash.slice(1);
         if (!id) return;
-        // update search result
+        // update search result, bookmark(while page is 'preview__link--active')
         (0, _resultviewJsDefault.default).update(_modelJs.getSearchResultPage());
+        (0, _bookmarkviewJsDefault.default).update(_modelJs.state.bookmark);
         // get recipes data
         await _modelJs.loadRecipe(id);
         // rendering web
@@ -592,16 +595,31 @@ const controlServings = function(newServings) {
     _modelJs.updateServings(newServings);
     // update recipe with virtual DOM
     (0, _recipeviewJsDefault.default).update(_modelJs.state.recipe);
+    console.log(_modelJs.state.recipe);
+};
+const controlAddBookmark = function() {
+    // add, delete bookmark
+    if (!_modelJs.state.recipe.bookmarked) _modelJs.addBookmark(_modelJs.state.recipe);
+    else _modelJs.deleteBookmark(_modelJs.state.recipe.id);
+    // update recipe view
+    (0, _recipeviewJsDefault.default).update(_modelJs.state.recipe);
+    // render bookmark
+    (0, _bookmarkviewJsDefault.default).render(_modelJs.state.bookmark);
+};
+const controlBookmarkRender = function() {
+    (0, _bookmarkviewJsDefault.default).render(_modelJs.state.bookmark);
 };
 const init = function() {
+    (0, _bookmarkviewJsDefault.default).addHandlerRender(controlBookmarkRender);
     (0, _recipeviewJsDefault.default).addHandlerRender(controlRecipe);
     (0, _recipeviewJsDefault.default).addHandlerUpdateServings(controlServings);
+    (0, _recipeviewJsDefault.default).addHandlerAddBookmark(controlAddBookmark);
     (0, _searchviewJsDefault.default).addHandlerSearch(controlSearchResult);
     (0, _paginationviewJsDefault.default).addHandlerClick(controlPagination);
 };
 init();
 
-},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","core-js/modules/es.regexp.flags.js":"gSXXb","core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","./views/recipeview.js":"8Jlc1","regenerator-runtime":"dXNgZ","./views/searchview.js":"furg1","./views/resultview.js":"cSdas","./views/paginationview.js":"ixwX5"}],"gkKU3":[function(require,module,exports) {
+},{"@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","core-js/modules/es.regexp.flags.js":"gSXXb","core-js/modules/web.immediate.js":"49tUX","regenerator-runtime/runtime":"dXNgZ","./model.js":"Y4A21","./views/recipeview.js":"8Jlc1","regenerator-runtime":"dXNgZ","./views/searchview.js":"furg1","./views/resultview.js":"cSdas","./views/paginationview.js":"ixwX5","./views/bookmarkview.js":"hy89N"}],"gkKU3":[function(require,module,exports) {
 exports.interopDefault = function(a) {
     return a && a.__esModule ? a : {
         default: a
@@ -2427,6 +2445,8 @@ parcelHelpers.export(exports, "loadRecipe", ()=>loadRecipe);
 parcelHelpers.export(exports, "loadSearchResult", ()=>loadSearchResult);
 parcelHelpers.export(exports, "getSearchResultPage", ()=>getSearchResultPage);
 parcelHelpers.export(exports, "updateServings", ()=>updateServings);
+parcelHelpers.export(exports, "addBookmark", ()=>addBookmark);
+parcelHelpers.export(exports, "deleteBookmark", ()=>deleteBookmark);
 var _regeneratorRuntime = require("regenerator-runtime");
 var _config = require("./config");
 var _helper = require("./helper");
@@ -2437,12 +2457,12 @@ const state = {
         result: [],
         page: 1,
         prePage: (0, _config.SEC_PRE_PAGE)
-    }
+    },
+    bookmark: []
 };
 const loadRecipe = async function(id) {
     try {
         const data = await (0, _helper.getJSON)(`${(0, _config.API_URL)}/${id}`);
-        console.log(data);
         let { recipe  } = data.data;
         state.recipe = {
             id: recipe.id,
@@ -2454,7 +2474,9 @@ const loadRecipe = async function(id) {
             servings: recipe.servings,
             sourceUrl: recipe.source_url
         };
-        console.log(recipe);
+        // reload bookmark
+        if (state.bookmark.some((bm)=>bm.id === id)) state.recipe.bookmarked = true;
+        else state.recipe.bookmarked = false;
     } catch (err) {
         throw err;
     }
@@ -2490,6 +2512,28 @@ const updateServings = function(newServings) {
     });
     state.recipe.servings = newServings;
 };
+const storageBookmark = function() {
+    localStorage.setItem("bookmark", JSON.stringify(state.bookmark));
+};
+const clearBookmark = function() {
+    localStorage.clear("bookmark");
+};
+const addBookmark = function(recipe) {
+    state.bookmark.push(recipe);
+    state.recipe.bookmarked = true;
+    storageBookmark();
+};
+const deleteBookmark = function(id) {
+    const index = state.bookmark.findIndex((el)=>el.id === id);
+    state.bookmark.splice(index, 1);
+    state.recipe.bookmarked = false;
+    storageBookmark();
+};
+const init = function() {
+    const storage = localStorage.getItem("bookmark");
+    if (storage) state.bookmark = JSON.parse(storage);
+};
+init();
 
 },{"./config":"k5Hzs","./helper":"lVRAz","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","regenerator-runtime":"dXNgZ"}],"k5Hzs":[function(require,module,exports) {
 // IMPORTANT const variables would be REUSED multiple place
@@ -2560,6 +2604,14 @@ class RecipeView extends (0, _viewDefault.default) {
             if (+updateTo > 0) handler(+updateTo);
         });
     }
+    addHandlerAddBookmark(handler) {
+        // while page init() there's not bookmark so use delegation
+        this._parentEl.addEventListener("click", function(e) {
+            const btn = e.target.closest(".btn--bookmark");
+            if (!btn) return;
+            handler();
+        });
+    }
     _generateMarkup() {
         return `
     <figure class="recipe__fig">
@@ -2603,9 +2655,9 @@ class RecipeView extends (0, _viewDefault.default) {
         
         </svg>
       </div>
-      <button class="btn--round">
+      <button class="btn--round btn--bookmark">
         <svg class="">
-          <use href="${0, _iconsSvgDefault.default}#icon-bookmark-fill"></use>
+          <use href="${0, _iconsSvgDefault.default}#icon-bookmark${this._data.bookmarked ? "-fill" : ""}"></use>
         </svg>
       </button>
     </div>
@@ -2951,13 +3003,13 @@ var _iconsSvg = require("../../img/icons.svg");
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
 class View {
     _data;
-    render(data) {
+    render(data, render = true) {
         // here data only check input arugement is true or false, can check the data is [] or not.
         // data = undefined, null or data is array but empty
-        console.log(data);
         if (!data || Array.isArray(data) && data.length === 0) return this.renderError();
         this._data = data;
         const markup = this._generateMarkup();
+        if (!render) return markup;
         this._clear();
         this._parentEl.insertAdjacentHTML("afterbegin", markup);
     }
@@ -2974,11 +3026,10 @@ class View {
         newEl.forEach((newEl, i)=>{
             const curEl = currentEl[i];
             // replace the text
-            if (!newEl.isEqualNode(curEl) && newEl.firstChild.nodeValue.trim() !== "") curEl.innerText = newEl.innerText;
+            // NOTICE: some element doesnt have firstChild
+            if (!newEl.isEqualNode(curEl) && newEl.firstChild?.nodeValue.trim() !== "") curEl.textContent = newEl.textContent;
             // replace attributes
-            if (!newEl.isEqualNode(curEl)) // console.log(Array.from(newEl.attributes));
-            // Array.from(newEl.attributes).forEach(attr => console.log(attr.name));
-            Array.from(newEl.attributes).forEach((attr)=>curEl.setAttribute(attr.name, attr.value));
+            if (!newEl.isEqualNode(curEl)) Array.from(newEl.attributes).forEach((attr)=>curEl.setAttribute(attr.name, attr.value));
         });
     }
     _clear() {
@@ -3053,6 +3104,8 @@ var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _view = require("./view");
 var _viewDefault = parcelHelpers.interopDefault(_view);
+var _previewview = require("./previewview");
+var _previewviewDefault = parcelHelpers.interopDefault(_previewview);
 var _iconsSvg = require("../../img/icons.svg");
 var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
 class ResultView extends (0, _viewDefault.default) {
@@ -3060,28 +3113,38 @@ class ResultView extends (0, _viewDefault.default) {
     _errorMessage = `0 results found. try again.`;
     _message = "";
     _generateMarkup() {
-        // console.log(this._data);
-        return this._data.map(this._generateMarkupPreview).join("");
+        return this._data.map((result)=>(0, _previewviewDefault.default).render(result, false)).join("");
     }
-    _generateMarkupPreview(data) {
+}
+exports.default = new ResultView();
+
+},{"./view":"bWlJ9","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../../img/icons.svg":"cMpiy","./previewview":"40MDS"}],"40MDS":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+var _iconsSvg = require("../../img/icons.svg");
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class PreviewView extends (0, _viewDefault.default) {
+    _generateMarkup() {
         const id = window.location.hash.slice(1);
         return `
     <li class="preview">
-        <a class="preview__link ${id === data.id ? "preview__link--active" : ""}"  href="#${data.id}">
+        <a class="preview__link ${id === this._data.id ? "preview__link--active" : ""}"  href="#${this._data.id}">
             <figure class="preview__fig">
-                <img src="${data.image}" alt="${data.title}" />
+                <img src="${this._data.image}" alt="${this._data.title}" />
             </figure>
             <div class="preview__data">
-                <h4 class="preview__title">${data.title}</h4>
-                <p class="preview__publisher">${data.publisher}</p>
+                <h4 class="preview__title">${this._data.title}</h4>
+                <p class="preview__publisher">${this._data.publisher}</p>
             </div>
         </a>
     </li>`;
     }
 }
-exports.default = new ResultView();
+exports.default = new PreviewView();
 
-},{"./view":"bWlJ9","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","../../img/icons.svg":"cMpiy"}],"ixwX5":[function(require,module,exports) {
+},{"./view":"bWlJ9","../../img/icons.svg":"cMpiy","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"ixwX5":[function(require,module,exports) {
 var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
 parcelHelpers.defineInteropFlag(exports);
 var _view = require("./view");
@@ -3139,6 +3202,28 @@ class PaginationView extends (0, _viewDefault.default) {
 }
 exports.default = new PaginationView();
 
-},{"./view":"bWlJ9","../../img/icons.svg":"cMpiy","../config.js":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}]},["fA0o9","aenu9"], "aenu9", "parcelRequire3a11")
+},{"./view":"bWlJ9","../../img/icons.svg":"cMpiy","../config.js":"k5Hzs","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3"}],"hy89N":[function(require,module,exports) {
+var parcelHelpers = require("@parcel/transformer-js/src/esmodule-helpers.js");
+parcelHelpers.defineInteropFlag(exports);
+var _view = require("./view");
+var _viewDefault = parcelHelpers.interopDefault(_view);
+var _previewview = require("./previewview");
+var _previewviewDefault = parcelHelpers.interopDefault(_previewview);
+var _iconsSvg = require("../../img/icons.svg");
+var _iconsSvgDefault = parcelHelpers.interopDefault(_iconsSvg);
+class BookmarkView extends (0, _viewDefault.default) {
+    _parentEl = document.querySelector(".bookmarks__list");
+    _errorMessage = `No Bookmark.`;
+    _message = "";
+    _generateMarkup() {
+        return this._data.map((bookmark)=>(0, _previewviewDefault.default).render(bookmark, false)).join("");
+    }
+    addHandlerRender(handler) {
+        window.addEventListener("load", handler);
+    }
+}
+exports.default = new BookmarkView();
+
+},{"./view":"bWlJ9","../../img/icons.svg":"cMpiy","@parcel/transformer-js/src/esmodule-helpers.js":"gkKU3","./previewview":"40MDS"}]},["fA0o9","aenu9"], "aenu9", "parcelRequire3a11")
 
 //# sourceMappingURL=index.e37f48ea.js.map

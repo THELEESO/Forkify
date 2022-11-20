@@ -3,15 +3,16 @@ import icons from '../../img/icons.svg';
 export default class View {
   _data;
 
-  render(data) {
+  render(data, render = true) {
     // here data only check input arugement is true or false, can check the data is [] or not.
     // data = undefined, null or data is array but empty
-    console.log(data);
     if (!data || (Array.isArray(data) && data.length === 0))
       return this.renderError();
-
     this._data = data;
     const markup = this._generateMarkup();
+
+    if (!render) return markup;
+
     this._clear();
     this._parentEl.insertAdjacentHTML('afterbegin', markup);
   }
@@ -19,6 +20,7 @@ export default class View {
   // update any dom if it's changed
   update(data) {
     this._data = data;
+
     const newMarkup = this._generateMarkup();
 
     // create virtual DOM (save in memory)
@@ -33,17 +35,16 @@ export default class View {
       const curEl = currentEl[i];
 
       // replace the text
+      // NOTICE: some element doesnt have firstChild
       if (
         !newEl.isEqualNode(curEl) &&
-        newEl.firstChild.nodeValue.trim() !== ''
+        newEl.firstChild?.nodeValue.trim() !== ''
       ) {
-        curEl.innerText = newEl.innerText;
+        curEl.textContent = newEl.textContent;
       }
 
       // replace attributes
       if (!newEl.isEqualNode(curEl)) {
-        // console.log(Array.from(newEl.attributes));
-        // Array.from(newEl.attributes).forEach(attr => console.log(attr.name));
         Array.from(newEl.attributes).forEach(attr =>
           curEl.setAttribute(attr.name, attr.value)
         );
