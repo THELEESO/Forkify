@@ -3,6 +3,12 @@ import icons from '../../img/icons.svg';
 export default class View {
   _data;
 
+  /**
+   *
+   * @param {Object | Object[]} data will be render (e.g. recipe)
+   * @param {Boolean} [render = true] optional, if false will return markup string, instead of rendering to DOM
+   * @returns
+   */
   render(data, render = true) {
     // here data only check input arugement is true or false, can check the data is [] or not.
     // data = undefined, null or data is array but empty

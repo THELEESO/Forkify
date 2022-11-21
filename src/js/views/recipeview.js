@@ -4,7 +4,8 @@ import View from './view';
 // import icon let parcel to connect it.
 import icons from '../../img/icons.svg';
 // present float number to (number / number)
-import { Fraction } from 'fractional';
+// import { Fraction } from 'fractional';
+import fracty from 'fracty';
 
 class RecipeView extends View {
   _parentEl = document.querySelector('.recipe');
@@ -85,11 +86,11 @@ class RecipeView extends View {
         </div>
       </div>
 
-      <div class="recipe__user-generated">
-        <svg>
-        
-        </svg>
-      </div>
+      <div class="recipe__user-generated ${this._data.key ? '' : 'hidden'}">
+          <svg>
+            <use href="${icons}#icon-user"></use>
+          </svg>
+        </div>
       <button class="btn--round btn--bookmark">
         <svg class="">
           <use href="${icons}#icon-bookmark${
@@ -134,7 +135,8 @@ class RecipeView extends View {
       <use href="${icons}#icon-check"></use>
     </svg>
     <div class="recipe__quantity">${
-      ing.quantity ? new Fraction(ing.quantity).toString() : ''
+      // ing.quantity ? new Fraction(ing.quantity).toString() : ''
+      ing.quantity ? fracty(ing.quantity).toString() : ''
     }</div>
     <div class="recipe__description">
       <span class="recipe__unit">${ing.unit}</span>

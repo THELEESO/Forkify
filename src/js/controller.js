@@ -7,6 +7,7 @@ import searchView from './views/searchview.js';
 import resultView from './views/resultview.js';
 import paginationView from './views/paginationview.js';
 import bookmarkView from './views/bookmarkview.js';
+import addRecipeView from './views/addrecipeview.js';
 
 // from Parcel: while change code and save, the page wont refresh.
 // if (module.hot) {
@@ -87,6 +88,33 @@ const controlBookmarkRender = function () {
   bookmarkView.render(model.state.bookmark);
 };
 
+const controlRecipeUpload = async function (newRecipe) {
+  try {
+    addRecipeView.renderSpinner();
+
+    // upload recipe
+    await model.uploadRecipe(newRecipe);
+
+    // render upload recipe
+    recipeView.render(model.state.recipe);
+
+    // success message
+    addRecipeView.renderMessage();
+
+    // close the Form window
+    // as formSwitch use 'this', we need to put it into function then call it.
+    setTimeout(() => addRecipeView.formSwitch(), 2500);
+
+    // render bookmark
+    bookmarkView.render(model.state.bookmark);
+
+    // ID to URL
+    window.history.pushState(null, '', `#${model.state.recipe.id}`);
+  } catch (err) {
+    addRecipeView.renderError(err.message);
+  }
+};
+
 const init = function () {
   bookmarkView.addHandlerRender(controlBookmarkRender);
   recipeView.addHandlerRender(controlRecipe);
@@ -94,6 +122,7 @@ const init = function () {
   recipeView.addHandlerAddBookmark(controlAddBookmark);
   searchView.addHandlerSearch(controlSearchResult);
   paginationView.addHandlerClick(controlPagination);
+  addRecipeView.addHandlerUpload(controlRecipeUpload);
 };
 
 init();
